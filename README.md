@@ -1,6 +1,6 @@
 # cs4247
 
-## setup
+## Setup
 ### Android SDK + Eclipse
 > Make sure to have 
 * Android 4.3 API 18
@@ -20,11 +20,14 @@
 
 ## Files of interest
 ### MainActivity.java
-* Init Maps and set location.
+>
+* Init Maps and set location
 * Use GeofenceRequester.java and registers with Google Play Services to be notified of changes in Geofences.
 * Define BroadcastReceiver.
 ### ContextUpdateService.java
+>
 * onHandleIntent is called when changes in Geofences occurs. All context awareness code can go here.
 ### Utilities.java
+>
 * Defines geofences. A geofence defines a point location and radius. Only contain a NUS geofence.
 
