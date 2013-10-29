@@ -36,6 +36,7 @@ import android.location.Location;
 import android.os.Bundle;
 import android.provider.SyncStateContract.Constants;
 import android.support.v4.app.FragmentActivity;
+import android.support.v4.content.LocalBroadcastManager;
 import android.text.TextUtils;
 import android.util.Log;
 import android.view.View;
@@ -93,6 +94,9 @@ public class MainActivity extends FragmentActivity
         setUpLocationClientIfNeeded();
         mLocationClient.connect();
         centerMapOnMyLocation();
+        
+        // Register the broadcast receiver to receive status updates
+        //LocalBroadcastManager.getInstance(this).registerReceiver(mBroadcastReceiver, mIntentFilter);
     }
 
     @Override

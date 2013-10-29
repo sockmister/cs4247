@@ -92,6 +92,16 @@ public final class Utilities {
 
     public static final String EXTRA_GEOFENCE_STATUS =
             "com.example.android.geofence.EXTRA_GEOFENCE_STATUS";
+    
+    /*
+     * Server URL
+     */
+    public static final String SERVER_URL = 
+    		"http://192.168.1.61:5000";
+    
+    public static String getServerURL(Double lat, Double lon, Double ra){
+    	return SERVER_URL + "/get?la=" + lat.toString() + "&lo=" + lon.toString() + "&ra=" + ra.toString();
+    }
 
 
     /**
@@ -118,11 +128,10 @@ public final class Utilities {
         }
     }
     
-    public static List<Geofence> getGeofences(){
-    	List<Geofence> geofences = new ArrayList<Geofence>();
+    public static List<SimpleGeofence> getSimpleGeofences(){
+    	List<SimpleGeofence> geofences = new ArrayList<SimpleGeofence>();
     	
     	// NUS
-    	@SuppressWarnings("unused")
 		SimpleGeofence geofence1 = new SimpleGeofence(
                 "1",
                 1.29619002,
@@ -130,7 +139,17 @@ public final class Utilities {
                 5000.0f,
                 Geofence.NEVER_EXPIRE,
                 Geofence.GEOFENCE_TRANSITION_ENTER);
-    	geofences.add(geofence1.toGeofence());
+    	geofences.add(geofence1);
+    	
+    	return geofences;
+    }
+    
+    public static List<Geofence> getGeofences(){
+    	List<SimpleGeofence> simpleGeofences = Utilities.getSimpleGeofences();
+    	List<Geofence> geofences = new ArrayList<Geofence>();
+    	for(SimpleGeofence simpleGeofence : simpleGeofences){
+    		geofences.add(simpleGeofence.toGeofence());
+    	}
     	
     	return geofences;
     }
