@@ -1,7 +1,15 @@
 package com.cs4247;
 
+import java.util.ArrayList;
 import java.util.List;
 
+import org.json.JSONArray;
+import org.json.JSONException;
+import org.json.JSONObject;
+
+import com.androidquery.AQuery;
+import com.androidquery.callback.AjaxCallback;
+import com.androidquery.callback.AjaxStatus;
 import com.google.android.gms.location.Geofence;
 import com.google.android.gms.location.LocationClient;
 
@@ -12,6 +20,8 @@ import android.text.TextUtils;
 import android.util.Log;
 
 public class ContextUpdateService extends IntentService {
+	
+	List<Event> events;
 
 	public ContextUpdateService() {
 		super("ContextUpdateService");
@@ -55,7 +65,24 @@ public class ContextUpdateService extends IntentService {
             if ( (transition == Geofence.GEOFENCE_TRANSITION_ENTER) || 
                     (transition == Geofence.GEOFENCE_TRANSITION_EXIT) ) {
             	
-            	// TODO do contextual aware stuff here.
+            	// make connection to retrieve relevant events
+            	List<Geofence> geofences = LocationClient.getTriggeringGeofences(intent);
+            	List<SimpleGeofence> appGeofences = Utilities.getSimpleGeofences();
+            	if(events == null) events = new ArrayList<Event>();
+            	
+            	System.out.println("received geofences of size: " + geofences.size());
+            	
+            	AQuery aq = new AQuery(this);
+            	for(Geofence currGeofence : geofences){	
+            		int index = Integer.valueOf(currGeofence.getRequestId()) - 1;
+            		Double lat = appGeofences.get(index).getLatitude();
+            		Double lon = appGeofences.get(index).getLongitude();
+            		Double ra = (double) appGeofences.get(index).getRadius();
+            		
+            		System.out.println(Utilities.getServerURL(lat, lon, ra));
+            		
+            		aq.ajax(Utilities.getServerURL(lat, lon, ra), JSONArray.class, this, "serverCallback"); 
+            	}
 
             // An invalid transition was reported
             } else {
@@ -83,6 +110,26 @@ public class ContextUpdateService extends IntentService {
             default:
                 return getString(R.string.geofence_transition_unknown);
         }
+    }
+    
+    public void serverCallback(String url, JSONArray json, AjaxStatus status){
+    	if(json != null){         
+    		System.out.println(json.toString());
+    		for(int i = 0; i < json.length(); i++){
+    			try {
+					events.add(new Event(json.getJSONObject(i)) );
+				} catch (JSONException e) {
+					e.printStackTrace();
+				}
+    		}
+    		
+    		// print out events
+    		for(int i = 0; i < events.size(); i++){
+    			System.out.println(events.get(i).getAddress1());
+    		}
+    	}else{
+    		// ajax error
+    	}
     }
 
 }
