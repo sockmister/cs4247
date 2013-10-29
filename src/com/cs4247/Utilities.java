@@ -93,6 +93,9 @@ public final class Utilities {
     public static final String EXTRA_GEOFENCE_STATUS =
             "com.example.android.geofence.EXTRA_GEOFENCE_STATUS";
     
+    public static final String EXTRA_EVENT = 
+    		"EVENTS";
+    
     /*
      * Server URL
      */
@@ -140,6 +143,16 @@ public final class Utilities {
                 Geofence.NEVER_EXPIRE,
                 Geofence.GEOFENCE_TRANSITION_ENTER);
     	geofences.add(geofence1);
+    	
+    	// bukit panjang
+		SimpleGeofence geofence2 = new SimpleGeofence(
+                "2",
+                1.37744999,
+                103.76732635,
+                5000.0f,
+                Geofence.NEVER_EXPIRE,
+                Geofence.GEOFENCE_TRANSITION_ENTER);
+    	geofences.add(geofence2);
     	
     	return geofences;
     }

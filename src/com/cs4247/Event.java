@@ -1,9 +1,11 @@
 package com.cs4247;
 
+import java.io.Serializable;
+
 import org.json.JSONException;
 import org.json.JSONObject;
 
-public class Event {
+public class Event implements Serializable{
 	private String address1;
 	private String address2;
 	private String contactemail;

@@ -16,6 +16,8 @@
 
 package com.cs4247;
 
+import java.util.ArrayList;
+
 import com.google.android.gms.common.ConnectionResult;
 import com.google.android.gms.common.GooglePlayServicesClient.ConnectionCallbacks;
 import com.google.android.gms.common.GooglePlayServicesClient.OnConnectionFailedListener;
@@ -27,10 +29,12 @@ import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.GoogleMap.OnMyLocationButtonClickListener;
 import com.google.android.gms.maps.SupportMapFragment;
 import com.google.android.gms.maps.model.LatLng;
+import com.google.android.gms.maps.model.MarkerOptions;
 
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
+import android.content.IntentFilter;
 import android.location.Location;
 import android.os.Bundle;
 import android.provider.SyncStateContract.Constants;
@@ -58,6 +62,15 @@ public class MainActivity extends FragmentActivity
     private GoogleMap mMap;
     
     private LocationClient mLocationClient;
+    
+    /*
+     * An instance of an inner class that receives broadcasts from listeners and from the
+     * IntentService that receives geofence transition events
+     */
+    private ContextUpdateReceiver mBroadcastReceiver;
+    
+ // An intent filter for the broadcast receiver
+    private IntentFilter mIntentFilter;
 
     // These settings are the same as the settings for the map. They will in fact give you updates
     // at the maximal rates currently possible.
@@ -73,9 +86,27 @@ public class MainActivity extends FragmentActivity
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
         
+        mBroadcastReceiver = new ContextUpdateReceiver();
+        
+        mIntentFilter = new IntentFilter();
+        
+        // Action for broadcast Intents that report successful addition of geofences
+        mIntentFilter.addAction(Utilities.ACTION_GEOFENCES_ADDED);
+
+        // Action for broadcast Intents that report successful removal of geofences
+        mIntentFilter.addAction(Utilities.ACTION_GEOFENCES_REMOVED);
+
+        // Action for broadcast Intents containing various types of geofencing errors
+        mIntentFilter.addAction(Utilities.ACTION_GEOFENCE_ERROR);
+        
+        // Action for broadcast Intents for transitions
+        mIntentFilter.addAction(Utilities.ACTION_GEOFENCE_TRANSITION);
+
+        // All Location Services sample apps use this category
+        mIntentFilter.addCategory(Utilities.CATEGORY_LOCATION_SERVICES);
+        
         mGeofenceRequester = new GeofenceRequester(this);
         
-        // sync geofences with web service? or use predetermined geofences
         try {
             // Try to add geofences
             mGeofenceRequester.addGeofences(Utilities.getGeofences());
@@ -95,7 +126,7 @@ public class MainActivity extends FragmentActivity
         centerMapOnMyLocation();
         
         // Register the broadcast receiver to receive status updates
-        //LocalBroadcastManager.getInstance(this).registerReceiver(mBroadcastReceiver, mIntentFilter);
+        LocalBroadcastManager.getInstance(this).registerReceiver(mBroadcastReceiver, mIntentFilter);
     }
 
     @Override
@@ -213,6 +244,8 @@ public class MainActivity extends FragmentActivity
          */
         @Override
         public void onReceive(Context context, Intent intent) {
+        	
+        	System.out.println(intent.getAction());
         	// Check the action code and determine what to do
             String action = intent.getAction();
 
@@ -229,7 +262,7 @@ public class MainActivity extends FragmentActivity
 
             // Intent contains information about a geofence transition
             } else if (TextUtils.equals(action, Utilities.ACTION_GEOFENCE_TRANSITION)) {
-
+            	System.out.println("here");
                 handleGeofenceTransition(context, intent);
 
             // The Intent contained an invalid action
@@ -255,7 +288,16 @@ public class MainActivity extends FragmentActivity
          * @param intent The Intent containing the transition
          */
         private void handleGeofenceTransition(Context context, Intent intent) {
-
+        	ArrayList<Event> events = (ArrayList<Event>) intent.getSerializableExtra(Utilities.EXTRA_EVENT);
+        	
+        	// add markers
+        	for(int i = 0; i < events.size(); i++){
+        		mMap.addMarker(new MarkerOptions().
+        				position(new LatLng(events.get(i).getLa(), events.get(i).getLo())).
+        				title(events.get(i).getEventname()).
+        				snippet(events.get(i).getDescription())
+        				);
+        	}
         }
 
         /**

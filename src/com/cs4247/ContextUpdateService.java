@@ -2,6 +2,7 @@ package com.cs4247;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 import org.json.JSONArray;
 import org.json.JSONException;
@@ -13,7 +14,11 @@ import com.androidquery.callback.AjaxStatus;
 import com.google.android.gms.location.Geofence;
 import com.google.android.gms.location.LocationClient;
 
+import android.app.ActivityManager;
+import android.app.ActivityManager.RunningTaskInfo;
 import android.app.IntentService;
+import android.app.Notification;
+import android.content.Context;
 import android.content.Intent;
 import android.support.v4.content.LocalBroadcastManager;
 import android.text.TextUtils;
@@ -21,7 +26,8 @@ import android.util.Log;
 
 public class ContextUpdateService extends IntentService {
 	
-	List<Event> events;
+	ArrayList<Event> events;
+	Intent broadcastIntent;
 
 	public ContextUpdateService() {
 		super("ContextUpdateService");
@@ -30,6 +36,12 @@ public class ContextUpdateService extends IntentService {
 	@Override
 	protected void onHandleIntent(Intent intent) {
 		Log.d(Utilities.APPTAG, "geofence intent received.");
+		
+        // Create a local broadcast Intent
+        broadcastIntent = new Intent();
+
+        // Give it the category for all intents sent by the Intent Service
+        broadcastIntent.addCategory(Utilities.CATEGORY_LOCATION_SERVICES);
 		
 		// First check for errors
         if (LocationClient.hasError(intent)) {
@@ -45,16 +57,12 @@ public class ContextUpdateService extends IntentService {
                     getString(R.string.geofence_transition_error_detail, errorMessage)
             );
             
-            /*
-             * We ignore local broadcast for now
-             * 
             // Set the action and error message for the broadcast intent
             broadcastIntent.setAction(Utilities.ACTION_GEOFENCE_ERROR)
                            .putExtra(Utilities.EXTRA_GEOFENCE_STATUS, errorMessage);
 
             // Broadcast the error *locally* to other components in this app
             LocalBroadcastManager.getInstance(this).sendBroadcast(broadcastIntent);
-            */
 
         } else {
 
@@ -83,6 +91,8 @@ public class ContextUpdateService extends IntentService {
             		
             		aq.ajax(Utilities.getServerURL(lat, lon, ra), JSONArray.class, this, "serverCallback"); 
             	}
+            	
+            	
 
             // An invalid transition was reported
             } else {
@@ -112,6 +122,31 @@ public class ContextUpdateService extends IntentService {
         }
     }
     
+    /*
+     * Sends notification to notification bar only if app is not running in foreground.
+     */
+    public Notification buildNotification(String arg0, Map<String, String> arg1) {
+
+        ActivityManager activityManager = (ActivityManager) this.getSystemService(Context.ACTIVITY_SERVICE);
+        List<RunningTaskInfo> services = activityManager
+                .getRunningTasks(Integer.MAX_VALUE);
+        boolean isActivityFound = false;
+
+        if (services.get(0).topActivity.getPackageName().toString()
+                .equalsIgnoreCase(this.getPackageName().toString())) {
+            isActivityFound = true;
+        }
+
+        if (isActivityFound) {
+            return null;
+        } else {
+        	// TODO create notification with events.
+        	
+        	return new Notification();
+        }
+
+    }
+    
     public void serverCallback(String url, JSONArray json, AjaxStatus status){
     	if(json != null){         
     		System.out.println(json.toString());
@@ -123,10 +158,15 @@ public class ContextUpdateService extends IntentService {
 				}
     		}
     		
-    		// print out events
-    		for(int i = 0; i < events.size(); i++){
-    			System.out.println(events.get(i).getAddress1());
-    		}
+    		// broadcast information to app
+    		broadcastIntent.setAction(Utilities.ACTION_GEOFENCE_TRANSITION)
+    			.putExtra(Utilities.EXTRA_GEOFENCE_STATUS, "");
+    	
+	    	// Set the action and error message for the broadcast intent
+	        broadcastIntent.putExtra(Utilities.EXTRA_EVENT, events);
+	
+	        // Broadcast the error *locally* to other components in this app
+	        LocalBroadcastManager.getInstance(this).sendBroadcast(broadcastIntent);
     	}else{
     		// ajax error
     	}
