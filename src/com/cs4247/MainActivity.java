@@ -17,10 +17,17 @@
 package com.cs4247;
 
 import java.util.ArrayList;
+import java.util.List;
 
+import org.json.JSONArray;
+import org.json.JSONException;
+
+import com.androidquery.AQuery;
+import com.androidquery.callback.AjaxStatus;
 import com.google.android.gms.common.ConnectionResult;
 import com.google.android.gms.common.GooglePlayServicesClient.ConnectionCallbacks;
 import com.google.android.gms.common.GooglePlayServicesClient.OnConnectionFailedListener;
+import com.google.android.gms.location.Geofence;
 import com.google.android.gms.location.LocationListener;
 import com.google.android.gms.location.LocationRequest;
 import com.google.android.gms.location.LocationClient;
@@ -80,6 +87,8 @@ public class MainActivity extends FragmentActivity
             .setPriority(LocationRequest.PRIORITY_HIGH_ACCURACY);
     
     private GeofenceRequester mGeofenceRequester;
+    
+    ArrayList<Event> events;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -107,6 +116,8 @@ public class MainActivity extends FragmentActivity
         
         mGeofenceRequester = new GeofenceRequester(this);
         
+        events = new ArrayList<Event>();
+        
         try {
             // Try to add geofences
             mGeofenceRequester.addGeofences(Utilities.getGeofences());
@@ -124,6 +135,9 @@ public class MainActivity extends FragmentActivity
         setUpLocationClientIfNeeded();
         mLocationClient.connect();
         centerMapOnMyLocation();
+        
+        // update map markers
+        updateMapMarkers();
         
         // Register the broadcast receiver to receive status updates
         LocalBroadcastManager.getInstance(this).registerReceiver(mBroadcastReceiver, mIntentFilter);
@@ -172,6 +186,43 @@ public class MainActivity extends FragmentActivity
             mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(myLocation,
                     14));
         }        
+    }
+    
+    private void updateMapMarkers(){
+    	// make connection to retrieve relevant events
+    	//List<SimpleGeofence> appGeofences = Utilities.getSimpleGeofences();
+    	
+    	Location location = mMap.getMyLocation();
+    	
+    	if (location != null){
+    		AQuery aq = new AQuery(this);
+    		aq.ajax(Utilities.getServerURL(location.getLatitude(), location.getLongitude(), 10000.0), 
+    				JSONArray.class, this, "serverCallback");
+    	}
+    }
+    
+    public void serverCallback(String url, JSONArray json, AjaxStatus status){
+    	if(json != null){         
+    		System.out.println("in main: " + json.toString());
+    		for(int i = 0; i < json.length(); i++){
+    			try {
+					events.add(new Event(json.getJSONObject(i)) );
+				} catch (JSONException e) {
+					e.printStackTrace();
+				}
+    		}
+    		
+    		// add markers
+        	for(int i = 0; i < events.size(); i++){
+        		mMap.addMarker(new MarkerOptions().
+        				position(new LatLng(events.get(i).getLa(), events.get(i).getLo())).
+        				title(events.get(i).getEventname()).
+        				snippet(events.get(i).getDescription())
+        				);
+        	}
+    	}else{
+    		// ajax error
+    	}
     }
 
     /**
