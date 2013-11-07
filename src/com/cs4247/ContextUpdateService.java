@@ -1,6 +1,14 @@
 package com.cs4247;
 
+import java.text.DateFormat;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+
+import android.net.Uri;
+import android.provider.CalendarContract;
+import android.provider.CalendarContract.Instances;
+
+import java.util.Calendar;
 import java.util.List;
 import java.util.Map;
 
@@ -18,8 +26,11 @@ import android.app.ActivityManager;
 import android.app.ActivityManager.RunningTaskInfo;
 import android.app.IntentService;
 import android.app.Notification;
+import android.content.ContentResolver;
+import android.content.ContentUris;
 import android.content.Context;
 import android.content.Intent;
+import android.database.Cursor;
 import android.support.v4.content.LocalBroadcastManager;
 import android.text.TextUtils;
 import android.util.Log;
@@ -72,6 +83,14 @@ public class ContextUpdateService extends IntentService {
             // Test that a valid transition was reported
             if ( (transition == Geofence.GEOFENCE_TRANSITION_ENTER) || 
                     (transition == Geofence.GEOFENCE_TRANSITION_EXIT) ) {
+            	
+            	// check that calendar has nothing in the next few hours
+            	
+            	CalendarContext cc = new CalendarContext(this);
+            	if(!cc.isFree())
+            		return;
+            
+            /*******************************/
             	
             	// make connection to retrieve relevant events
             	List<Geofence> geofences = LocationClient.getTriggeringGeofences(intent);
