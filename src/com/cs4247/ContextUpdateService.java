@@ -112,7 +112,8 @@ public class ContextUpdateService extends IntentService {
             	}
             	
             	
-
+            	// send notification
+            	
             // An invalid transition was reported
             } else {
                 // Always log as an error

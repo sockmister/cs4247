@@ -4,9 +4,11 @@ import java.util.ArrayList;
 import java.util.List;
 
 import android.content.Context;
+import android.content.SharedPreferences;
 import android.location.Location;
 
 import com.cs4247.R;
+import com.google.android.gms.location.DetectedActivity;
 import com.google.android.gms.location.Geofence;
 
 /**
@@ -50,6 +52,11 @@ public final class Utilities {
     // A fast ceiling of update intervals, used when the app is visible
     public static final long FAST_INTERVAL_CEILING_IN_MILLISECONDS =
             MILLISECONDS_PER_SECOND * FAST_CEILING_IN_SECONDS;
+    
+    public static final long DETECTION_INTERVAL_SECONDS = 0;
+    
+    public static final long DETECTION_INTERVAL_MILLISECONDS = 
+    		MILLISECONDS_PER_SECOND * DETECTION_INTERVAL_SECONDS;
 
     // Create an empty string for initializing strings
     public static final String EMPTY_STRING = new String();
@@ -96,6 +103,10 @@ public final class Utilities {
     public static final String EXTRA_EVENT = 
     		"EVENTS";
     
+    // Key in the repository for the previous activity
+    public static final String KEY_PREVIOUS_ACTIVITY_TYPE =
+            "com.example.android.activityrecognition.KEY_PREVIOUS_ACTIVITY_TYPE";
+    
     /*
      * Server URL
      */
@@ -104,6 +115,35 @@ public final class Utilities {
     
     public static String getServerURL(Double lat, Double lon, Double ra){
     	return SERVER_URL + "/get?la=" + lat.toString() + "&lo=" + lon.toString() + "&ra=" + ra.toString();
+    }
+    
+    public static Double getSmartRadius(Context context){
+    	
+    	SharedPreferences mPrefs = context.getApplicationContext().getSharedPreferences(
+                Utilities.SHARED_PREFERENCES, Context.MODE_PRIVATE);
+    	
+    	int activityType = mPrefs.getInt(Utilities.KEY_PREVIOUS_ACTIVITY_TYPE, -1);
+    	
+    	switch(activityType) {
+    	case -1:
+    		return 4000.0;
+        case DetectedActivity.IN_VEHICLE:
+            return 15000.0;
+        case DetectedActivity.ON_BICYCLE:
+            return 6000.0;
+        case DetectedActivity.ON_FOOT:
+            return 4000.0;
+        case DetectedActivity.STILL:
+            return 1000.0;
+        case DetectedActivity.UNKNOWN:
+            return 4000.0;
+        case DetectedActivity.TILTING:
+            return 2000.0;
+            
+        default:
+        	return 4000.0;
+    	}
+    	
     }
 
 

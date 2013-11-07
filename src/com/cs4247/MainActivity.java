@@ -88,6 +88,8 @@ public class MainActivity extends FragmentActivity
     
     private GeofenceRequester mGeofenceRequester;
     
+    private ActivityRecognitionRequester mActivityRequester;
+    
     ArrayList<Event> events;
 
     @Override
@@ -115,6 +117,7 @@ public class MainActivity extends FragmentActivity
         mIntentFilter.addCategory(Utilities.CATEGORY_LOCATION_SERVICES);
         
         mGeofenceRequester = new GeofenceRequester(this);
+        mActivityRequester = new ActivityRecognitionRequester(this);
         
         events = new ArrayList<Event>();
         
@@ -127,6 +130,7 @@ public class MainActivity extends FragmentActivity
                         Toast.LENGTH_LONG).show();
         }
        
+        mActivityRequester.requestUpdates();
     }
 
     @Override
@@ -197,7 +201,7 @@ public class MainActivity extends FragmentActivity
     	
     	if (location != null){
     		AQuery aq = new AQuery(this);
-    		aq.ajax(Utilities.getServerURL(location.getLatitude(), location.getLongitude(), 10000.0), 
+    		aq.ajax(Utilities.getServerURL(location.getLatitude(), location.getLongitude(), Utilities.getSmartRadius(this) ), 
     				JSONArray.class, this, "serverCallback");
     	}
     }

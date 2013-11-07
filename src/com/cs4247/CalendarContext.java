@@ -36,7 +36,7 @@ public class CalendarContext {
     	// Specify the date range you want to search for recurring
     	// event instances
 		int hours = 3;
-		long hoursInMillis = 3 * 60 * 60 * 100;
+		long hoursInMillis = 3 * 60 * 60 * 1000;
 		
     	long startMillis = System.currentTimeMillis();
     	long endMillis = startMillis + hoursInMillis; 
