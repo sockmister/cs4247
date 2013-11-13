@@ -17,6 +17,7 @@
 package com.cs4247;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Set;
 
@@ -51,6 +52,7 @@ import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.GoogleMap.OnMyLocationButtonClickListener;
 import com.google.android.gms.maps.SupportMapFragment;
 import com.google.android.gms.maps.model.LatLng;
+import com.google.android.gms.maps.model.Marker;
 import com.google.android.gms.maps.model.MarkerOptions;
 
 /**
@@ -91,6 +93,8 @@ public class MainActivity extends FragmentActivity
     private ActivityRecognitionRequester mActivityRequester;
     
     ArrayList<Event> events;
+    
+    HashMap<String, Event> markerMap;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -120,6 +124,8 @@ public class MainActivity extends FragmentActivity
         mActivityRequester = new ActivityRecognitionRequester(this);
         
         events = new ArrayList<Event>();
+        
+        markerMap = new HashMap<String, Event>();
         
         try {
             // Try to add geofences
@@ -167,6 +173,10 @@ public class MainActivity extends FragmentActivity
                 mMap.setMyLocationEnabled(true);
                 mMap.setOnMyLocationButtonClickListener(this);
             }
+            
+            mMap.moveCamera( CameraUpdateFactory.newLatLngZoom(new LatLng(1.352083,103.819836) , 10.0f) );
+            
+            mMap.setOnInfoWindowClickListener(new InfoWindowClickListener());
         }
     }
 
@@ -209,6 +219,11 @@ public class MainActivity extends FragmentActivity
     public void serverCallback(String url, JSONArray json, AjaxStatus status){
     	if(json != null){         
     		System.out.println("in main: " + json.toString());
+    		
+    		events.clear();
+    		markerMap.clear();
+    		mMap.clear();
+    		
     		for(int i = 0; i < json.length(); i++){
     			try {
 					events.add(new Event(json.getJSONObject(i)) );
@@ -219,11 +234,12 @@ public class MainActivity extends FragmentActivity
     		
     		// add markers
         	for(int i = 0; i < events.size(); i++){
-        		mMap.addMarker(new MarkerOptions().
+        		Marker currMarker = mMap.addMarker(new MarkerOptions().
         				position(new LatLng(events.get(i).getLa(), events.get(i).getLo())).
         				title(events.get(i).getEventname()).
         				snippet(events.get(i).getDescription())
         				);
+        		markerMap.put(currMarker.getId(), events.get(i));
         	}
     	}else{
     		// ajax error
@@ -284,6 +300,17 @@ public class MainActivity extends FragmentActivity
                 .position(new LatLng(1.297081, 103.773615))
                 .title("Hello world"));
         return false;
+    }
+    
+    public class InfoWindowClickListener implements GoogleMap.OnInfoWindowClickListener {
+
+		@Override
+		public void onInfoWindowClick(Marker marker) {
+			// TODO Auto-generated method stub
+			
+			System.out.println(markerMap.get(marker.getId()).getEventname() );
+		}
+    	
     }
     
     /**
