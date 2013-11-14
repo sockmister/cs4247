@@ -24,6 +24,8 @@ import java.util.Set;
 import org.json.JSONArray;
 import org.json.JSONException;
 
+import android.app.NotificationManager;
+import android.app.PendingIntent;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
@@ -34,6 +36,8 @@ import android.net.Uri;
 import android.os.Bundle;
 import android.provider.CalendarContract;
 import android.support.v4.app.FragmentActivity;
+import android.support.v4.app.NotificationCompat;
+import android.support.v4.app.TaskStackBuilder;
 import android.support.v4.content.LocalBroadcastManager;
 import android.text.TextUtils;
 import android.view.View;
@@ -95,6 +99,8 @@ public class MainActivity extends FragmentActivity
     ArrayList<Event> events;
     
     HashMap<String, Event> markerMap;
+    
+    EventFilter eventFilter;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -137,6 +143,9 @@ public class MainActivity extends FragmentActivity
         }
        
         mActivityRequester.requestUpdates();
+        
+        eventFilter = new EventFilter(this);
+        eventFilter.extractAndIndexSMS();
     }
 
     @Override
@@ -217,6 +226,7 @@ public class MainActivity extends FragmentActivity
     }
     
     public void serverCallback(String url, JSONArray json, AjaxStatus status){
+    	System.out.println("main: servercallback()");
     	if(json != null){         
     		System.out.println("in main: " + json.toString());
     		
@@ -239,7 +249,12 @@ public class MainActivity extends FragmentActivity
         				title(events.get(i).getEventname()).
         				snippet(events.get(i).getDescription())
         				);
-        		markerMap.put(currMarker.getId(), events.get(i));
+        		
+        		if(eventFilter.scoreEvent(events.get(i)) > Utilities.FILTER_SCORE){
+        			markerMap.put(currMarker.getId(), events.get(i));
+        		}
+        		
+        		System.out.println("No. " + i + " " + events.get(i).getEventname() + " " + eventFilter.scoreEvent(events.get(i)));
         	}
     	}else{
     		// ajax error
@@ -308,7 +323,7 @@ public class MainActivity extends FragmentActivity
 		public void onInfoWindowClick(Marker marker) {
 			// TODO Auto-generated method stub
 			
-			System.out.println(markerMap.get(marker.getId()).getEventname() );
+			//System.out.println(markerMap.get(marker.getId()).getEventname() );
 		}
     	
     }

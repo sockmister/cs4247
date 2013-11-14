@@ -107,11 +107,13 @@ public final class Utilities {
     public static final String KEY_PREVIOUS_ACTIVITY_TYPE =
             "com.example.android.activityrecognition.KEY_PREVIOUS_ACTIVITY_TYPE";
     
+    public static final float FILTER_SCORE = 0.002f;
+    
     /*
      * Server URL
      */
     public static final String SERVER_URL = 
-    		"http://192.168.1.61:5000";
+    		"http://penbites.info.tm";
     
     public static String getServerURL(Double lat, Double lon, Double ra){
     	return SERVER_URL + "/get?la=" + lat.toString() + "&lo=" + lon.toString() + "&ra=" + ra.toString();

@@ -26,11 +26,15 @@ import android.app.ActivityManager;
 import android.app.ActivityManager.RunningTaskInfo;
 import android.app.IntentService;
 import android.app.Notification;
+import android.app.NotificationManager;
+import android.app.PendingIntent;
 import android.content.ContentResolver;
 import android.content.ContentUris;
 import android.content.Context;
 import android.content.Intent;
 import android.database.Cursor;
+import android.support.v4.app.NotificationCompat;
+import android.support.v4.app.TaskStackBuilder;
 import android.support.v4.content.LocalBroadcastManager;
 import android.text.TextUtils;
 import android.util.Log;
@@ -111,9 +115,6 @@ public class ContextUpdateService extends IntentService {
             		aq.ajax(Utilities.getServerURL(lat, lon, ra), JSONArray.class, this, "serverCallback"); 
             	}
             	
-            	
-            	// send notification
-            	
             // An invalid transition was reported
             } else {
                 // Always log as an error
@@ -145,7 +146,7 @@ public class ContextUpdateService extends IntentService {
     /*
      * Sends notification to notification bar only if app is not running in foreground.
      */
-    public Notification buildNotification(String arg0, Map<String, String> arg1) {
+    public boolean isAppForeground(){//String arg0, Map<String, String> arg1) {
 
         ActivityManager activityManager = (ActivityManager) this.getSystemService(Context.ACTIVITY_SERVICE);
         List<RunningTaskInfo> services = activityManager
@@ -156,15 +157,50 @@ public class ContextUpdateService extends IntentService {
                 .equalsIgnoreCase(this.getPackageName().toString())) {
             isActivityFound = true;
         }
+        
+        return isActivityFound;
+    }
+    
+    /**
+     * Posts a notification in the notification bar when a transition is detected.
+     * If the user clicks the notification, control goes to the main Activity.
+     * @param transitionType The type of transition that occurred.
+     *
+     */
+    private void sendNotification() {
 
-        if (isActivityFound) {
-            return null;
-        } else {
-        	// TODO create notification with events.
-        	
-        	return new Notification();
-        }
+        // Create an explicit content Intent that starts the main Activity
+        Intent notificationIntent =
+                new Intent(getApplicationContext(), MainActivity.class);
 
+        // Construct a task stack
+        TaskStackBuilder stackBuilder = TaskStackBuilder.create(this);
+
+        // Adds the main Activity to the task stack as the parent
+        stackBuilder.addParentStack(MainActivity.class);
+
+        // Push the content Intent onto the stack
+        stackBuilder.addNextIntent(notificationIntent);
+
+        // Get a PendingIntent containing the entire back stack
+        PendingIntent notificationPendingIntent =
+                stackBuilder.getPendingIntent(0, PendingIntent.FLAG_UPDATE_CURRENT);
+
+        // Get a notification builder that's compatible with platform versions >= 4
+        NotificationCompat.Builder builder = new NotificationCompat.Builder(this);
+
+        // Set the notification contents
+        builder.setSmallIcon(R.drawable.ic_launcher)
+               .setContentTitle("There are events in your area!")
+               .setContentText("Click to view the events.")
+               .setContentIntent(notificationPendingIntent);
+
+        // Get an instance of the Notification manager
+        NotificationManager mNotificationManager =
+            (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
+
+        // Issue the notification
+        mNotificationManager.notify(0, builder.build());
     }
     
     public void serverCallback(String url, JSONArray json, AjaxStatus status){
@@ -176,6 +212,11 @@ public class ContextUpdateService extends IntentService {
 				} catch (JSONException e) {
 					e.printStackTrace();
 				}
+    		}
+    		
+    		if(events.size() > 0 && !isAppForeground()){
+            	// send notification if app is not in the foreground.
+        		sendNotification();
     		}
     		
     		// broadcast information to app
