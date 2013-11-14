@@ -22,9 +22,7 @@ def handle():
 	for each in query_db('select * from locations'):
 		la2 = math.radians(each['la'])
 		lo2 = math.radians(each['lo'])
-		e = math.acos(math.sin(float(la1))*math.sin(float(la2)) + math.cos(float(la1))*math.cos(float(la2))*math.cos(float(lo2)-float(lo1)) )
-		d = e*radiusearth
-		print d
+		d = distance(la1,lo1,la2,lo2)
 		if (d < radius):
 			result.append(each)
 	return json.dumps(result)
