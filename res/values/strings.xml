@@ -46,5 +46,7 @@
     <string name="connection_error_outdated">Google Play services is out of date</string>
     <string name="connection_error_sign_in_required">The user is not signed in</string>
     <string name="connection_error_unknown">An unknown error occurred</string>
+    
+    <string name="date_format_error">Internal error: date formatting exception.</string>
 
 </resources>

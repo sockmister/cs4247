@@ -17,34 +17,47 @@
 package com.cs4247;
 
 import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Set;
 
+import org.json.JSONArray;
+import org.json.JSONException;
+
+import android.app.NotificationManager;
+import android.app.PendingIntent;
+import android.content.BroadcastReceiver;
+import android.content.Context;
+import android.content.Intent;
+import android.content.IntentFilter;
+import android.database.Cursor;
+import android.location.Location;
+import android.net.Uri;
+import android.os.Bundle;
+import android.provider.CalendarContract;
+import android.support.v4.app.FragmentActivity;
+import android.support.v4.app.NotificationCompat;
+import android.support.v4.app.TaskStackBuilder;
+import android.support.v4.content.LocalBroadcastManager;
+import android.text.TextUtils;
+import android.view.View;
+import android.widget.Toast;
+
+import com.androidquery.AQuery;
+import com.androidquery.callback.AjaxStatus;
 import com.google.android.gms.common.ConnectionResult;
 import com.google.android.gms.common.GooglePlayServicesClient.ConnectionCallbacks;
 import com.google.android.gms.common.GooglePlayServicesClient.OnConnectionFailedListener;
+import com.google.android.gms.location.LocationClient;
 import com.google.android.gms.location.LocationListener;
 import com.google.android.gms.location.LocationRequest;
-import com.google.android.gms.location.LocationClient;
 import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.GoogleMap.OnMyLocationButtonClickListener;
 import com.google.android.gms.maps.SupportMapFragment;
 import com.google.android.gms.maps.model.LatLng;
+import com.google.android.gms.maps.model.Marker;
 import com.google.android.gms.maps.model.MarkerOptions;
-
-import android.content.BroadcastReceiver;
-import android.content.Context;
-import android.content.Intent;
-import android.content.IntentFilter;
-import android.location.Location;
-import android.os.Bundle;
-import android.provider.SyncStateContract.Constants;
-import android.support.v4.app.FragmentActivity;
-import android.support.v4.content.LocalBroadcastManager;
-import android.text.TextUtils;
-import android.util.Log;
-import android.view.View;
-import android.widget.TextView;
-import android.widget.Toast;
 
 /**
  * This demo shows how GMS Location can be used to check for changes to the users location.  The
@@ -80,6 +93,14 @@ public class MainActivity extends FragmentActivity
             .setPriority(LocationRequest.PRIORITY_HIGH_ACCURACY);
     
     private GeofenceRequester mGeofenceRequester;
+    
+    private ActivityRecognitionRequester mActivityRequester;
+    
+    ArrayList<Event> events;
+    
+    HashMap<String, Event> markerMap;
+    
+    EventFilter eventFilter;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -106,6 +127,11 @@ public class MainActivity extends FragmentActivity
         mIntentFilter.addCategory(Utilities.CATEGORY_LOCATION_SERVICES);
         
         mGeofenceRequester = new GeofenceRequester(this);
+        mActivityRequester = new ActivityRecognitionRequester(this);
+        
+        events = new ArrayList<Event>();
+        
+        markerMap = new HashMap<String, Event>();
         
         try {
             // Try to add geofences
@@ -115,6 +141,11 @@ public class MainActivity extends FragmentActivity
             Toast.makeText(this, "Error: geofence already requested.",
                         Toast.LENGTH_LONG).show();
         }
+       
+        mActivityRequester.requestUpdates();
+        
+        eventFilter = new EventFilter(this);
+        eventFilter.extractAndIndexSMS();
     }
 
     @Override
@@ -124,6 +155,9 @@ public class MainActivity extends FragmentActivity
         setUpLocationClientIfNeeded();
         mLocationClient.connect();
         centerMapOnMyLocation();
+        
+        // update map markers
+        updateMapMarkers();
         
         // Register the broadcast receiver to receive status updates
         LocalBroadcastManager.getInstance(this).registerReceiver(mBroadcastReceiver, mIntentFilter);
@@ -148,6 +182,10 @@ public class MainActivity extends FragmentActivity
                 mMap.setMyLocationEnabled(true);
                 mMap.setOnMyLocationButtonClickListener(this);
             }
+            
+            mMap.moveCamera( CameraUpdateFactory.newLatLngZoom(new LatLng(1.352083,103.819836) , 10.0f) );
+            
+            mMap.setOnInfoWindowClickListener(new InfoWindowClickListener());
         }
     }
 
@@ -172,6 +210,55 @@ public class MainActivity extends FragmentActivity
             mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(myLocation,
                     14));
         }        
+    }
+    
+    private void updateMapMarkers(){
+    	// make connection to retrieve relevant events
+    	//List<SimpleGeofence> appGeofences = Utilities.getSimpleGeofences();
+    	
+    	Location location = mMap.getMyLocation();
+    	
+    	if (location != null){
+    		AQuery aq = new AQuery(this);
+    		aq.ajax(Utilities.getServerURL(location.getLatitude(), location.getLongitude(), Utilities.getSmartRadius(this) ), 
+    				JSONArray.class, this, "serverCallback");
+    	}
+    }
+    
+    public void serverCallback(String url, JSONArray json, AjaxStatus status){
+    	System.out.println("main: servercallback()");
+    	if(json != null){         
+    		System.out.println("in main: " + json.toString());
+    		
+    		events.clear();
+    		markerMap.clear();
+    		mMap.clear();
+    		
+    		for(int i = 0; i < json.length(); i++){
+    			try {
+					events.add(new Event(json.getJSONObject(i)) );
+				} catch (JSONException e) {
+					e.printStackTrace();
+				}
+    		}
+    		
+    		// add markers
+        	for(int i = 0; i < events.size(); i++){
+        		Marker currMarker = mMap.addMarker(new MarkerOptions().
+        				position(new LatLng(events.get(i).getLa(), events.get(i).getLo())).
+        				title(events.get(i).getEventname()).
+        				snippet(events.get(i).getDescription())
+        				);
+        		
+        		if(eventFilter.scoreEvent(events.get(i)) > Utilities.FILTER_SCORE){
+        			markerMap.put(currMarker.getId(), events.get(i));
+        		}
+        		
+        		System.out.println("No. " + i + " " + events.get(i).getEventname() + " " + eventFilter.scoreEvent(events.get(i)));
+        	}
+    	}else{
+    		// ajax error
+    	}
     }
 
     /**
@@ -228,6 +315,17 @@ public class MainActivity extends FragmentActivity
                 .position(new LatLng(1.297081, 103.773615))
                 .title("Hello world"));
         return false;
+    }
+    
+    public class InfoWindowClickListener implements GoogleMap.OnInfoWindowClickListener {
+
+		@Override
+		public void onInfoWindowClick(Marker marker) {
+			// TODO Auto-generated method stub
+			
+			//System.out.println(markerMap.get(marker.getId()).getEventname() );
+		}
+    	
     }
     
     /**
